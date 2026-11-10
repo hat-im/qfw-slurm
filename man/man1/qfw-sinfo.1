@@ -12,6 +12,11 @@ service summary, and combines it with
 .BR sinfo (1)
 JSON output.
 The Slurm host state and logical QPM state are reported separately.
+Each service is shown with the public QPU resource names that select it with
+.BR \-\-qpu ,
+read from the resources policy
+.B job_submit.lua
+enforces.
 .SH OPTIONS
 .TP
 .B \-\-json
@@ -19,6 +24,13 @@ Write a versioned JSON object instead of the terminal table.
 .TP
 .BI \-\-site-config " path"
 Use the named QFw site configuration.
+.TP
+.BI \-\-resources-file " path"
+Read the QPU resource names from the named resources policy, evaluated with
+.BR lua (1).
+The default is the policy
+.B job_submit.lua
+loads.
 .TP
 .BI \-\-timeout " seconds"
 Bound each required data-source operation.  The default is 10 seconds.
@@ -34,6 +46,12 @@ identifies administrative maintenance state.
 .TP
 .B QFW_SITE_CONFIG
 Default QFw site configuration.
+.TP
+.B QFW_SLURM_RESOURCES_FILE
+Default resources policy, as for
+.BR job_submit.lua .
+The default is
+.IR /etc/openqse/qfw-slurm/resources.lua .
 .TP
 .B DEFW_PREFIX
 Activated DEFw installation containing

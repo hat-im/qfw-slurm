@@ -8,6 +8,7 @@ import sys
 from typing import Any
 
 from .models import QPMService, SlurmNode
+from .policy import ResourcePolicyClient, ResourcePolicyError, resources_file
 from .qpm import QPMInspectionClient, QPMInspectionError
 from .render import table
 from .slurm import SlurmCommandError, SlurmJsonClient
@@ -27,6 +28,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--site-config", help="QFw site configuration used for discovery"
+    )
+    parser.add_argument(
+        "--resources-file",
+        help="job_submit.lua resources policy naming each service's --qpu values",
     )
     parser.add_argument(
         "--timeout", type=float, default=10.0, help="data-source timeout in seconds"
@@ -52,7 +57,14 @@ def main(arguments: list[str] | None = None) -> int:
     services = _merge_configured_services(
         services, _configured_services(args.site_config, nodes)
     )
-    rows = _rows(nodes, services)
+    try:
+        resources = ResourcePolicyClient(
+            resources_file(args.resources_file), args.timeout
+        ).resources()
+    except ResourcePolicyError as error:
+        resources = {}
+        errors.append(str(error))
+    rows = _rows(nodes, services, resources)
     if args.node:
         rows = [row for row in rows if row["node"] == args.node]
         if not rows:
@@ -65,10 +77,11 @@ def main(arguments: list[str] | None = None) -> int:
         _print_errors(errors)
     else:
         print(table(
-            ("NODE", "SERVICE", "BACKEND", "STATE", "ACTIVE", "SLURM_STATE"),
+            ("NODE", "SERVICE", "QPU", "BACKEND", "STATE", "ACTIVE", "SLURM_STATE"),
             (
                 (
-                    row["node"], row["service_id"], row["backend"],
+                    row["node"], row["service_id"],
+                    ",".join(row["resources"]) or "-", row["backend"],
                     row["state"], row["active_reservations"],
                     row["slurm_state"],
                 )
@@ -80,7 +93,9 @@ def main(arguments: list[str] | None = None) -> int:
 
 
 def _rows(
-    nodes: list[SlurmNode], services: list[QPMService]
+    nodes: list[SlurmNode],
+    services: list[QPMService],
+    resources: dict[str, tuple[str, ...]],
 ) -> list[dict[str, Any]]:
     node_by_name = {node.name: node for node in nodes}
     rows = []
@@ -91,6 +106,7 @@ def _rows(
             rows.append({
                 "node": host,
                 "service_id": service.service_id,
+                "resources": list(resources.get(service.service_id, ())),
                 "backend": service.backend,
                 "state": (
                     service.state
@@ -193,6 +209,7 @@ def _detail(row: dict[str, Any]) -> str:
     fields = (
         ("Node", row["node"]),
         ("Service", row["service_id"]),
+        ("QPU resources", ",".join(row["resources"]) or "-"),
         ("Backend", row["backend"]),
         ("QPM state", row["state"]),
         ("Slurm state", row["slurm_state"]),

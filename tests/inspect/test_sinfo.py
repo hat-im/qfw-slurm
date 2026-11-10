@@ -25,7 +25,7 @@ def test_associates_qpm_with_head_and_dvm_workers() -> None:
         ("nwqsim-head", "nwqsim-worker-1"), True,
     )
 
-    rows = _rows(nodes, [service])
+    rows = _rows(nodes, [service], {})
 
     assert [row["node"] for row in rows] == [
         "nwqsim-head", "nwqsim-worker-1"
@@ -40,7 +40,7 @@ def test_unready_service_is_down() -> None:
         ("iqm-head",), None, "unreachable",
     )
 
-    row = _rows([], [service])[0]
+    row = _rows([], [service], {})[0]
 
     assert row["state"] == "DOWN"
     assert row["slurm_state"] == "UNKNOWN"
@@ -52,7 +52,7 @@ def test_maintenance_service_remains_distinct_from_down() -> None:
         ("iqm-head",), None,
     )
 
-    row = _rows([], [service])[0]
+    row = _rows([], [service], {})[0]
 
     assert row["state"] == "MAINT"
 
@@ -119,10 +119,53 @@ def test_json_and_node_filter(monkeypatch, capsys) -> None:
         })(),
     )
 
+    monkeypatch.setattr(
+        "qfw_slurm_inspect.sinfo.ResourcePolicyClient.resources",
+        lambda self: {"iqm": ("iqm-20q",)},
+    )
+
     assert main(["--json", "iqm-head"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["schema"] == "qfw-sinfo-v1"
     assert payload["services"][0]["generation"] == 4
+    assert payload["services"][0]["resources"] == ["iqm-20q"]
+
+
+def test_rows_name_every_resource_selecting_the_service() -> None:
+    services = [
+        QPMService(
+            "shim-aws-qpm", "run", 1, "aws", "IDLE", True, 0, 0, ("aws-head",)
+        ),
+        QPMService("iqm", "run", 1, "iqm", "IDLE", True, 0, 0, ("iqm-head",)),
+    ]
+
+    rows = _rows([], services, {"shim-aws-qpm": ("aws-cepheus", "aws-sv1")})
+
+    assert [(row["service_id"], row["resources"]) for row in rows] == [
+        ("shim-aws-qpm", ["aws-cepheus", "aws-sv1"]),
+        ("iqm", []),
+    ]
+
+
+def test_unreadable_resource_policy_is_a_named_error(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        "qfw_slurm_inspect.sinfo.SlurmJsonClient.nodes",
+        lambda self: [SlurmNode("iqm-head", "IDLE")],
+    )
+    monkeypatch.setattr(
+        "qfw_slurm_inspect.sinfo.QPMInspectionClient.connect",
+        lambda timeout: type("Client", (), {
+            "services": lambda self: [QPMService(
+                "iqm", "run", 4, "IQM", "IDLE", True, 0, 0,
+                ("iqm-head",),
+            )]
+        })(),
+    )
+
+    assert main(["--json", "--resources-file", "/missing/resources.lua"]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["services"][0]["resources"] == []
+    assert any("/missing/resources.lua" in error for error in payload["errors"])
 
 
 def test_unknown_node_is_rejected(monkeypatch) -> None:
