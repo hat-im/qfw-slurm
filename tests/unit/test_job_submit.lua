@@ -88,3 +88,29 @@ output, err = module.directive({
 })
 check(output == nil and string.find(err, "unknown QPU"),
 	"unknown resources must fail")
+
+local quantum = {
+	spank_job_env = environment(),
+	partition = "quantum",
+	account = "qfw-test",
+}
+check(slurm_job_submit(quantum, nil, 0) == slurm.SUCCESS,
+	"a quantum job with an account must be accepted")
+check(quantum.burst_buffer == "#QFW v=1 qpu=nwqsim-site workload=quantum " ..
+	"circuits=2 qubits=5 depth=120 shots=1024", quantum.burst_buffer)
+
+local unaccounted = {spank_job_env = environment(), partition = "quantum"}
+check(slurm_job_submit(unaccounted, nil, 0) == slurm.ERROR,
+	"a quantum job without an account must fail")
+check(unaccounted.burst_buffer == nil,
+	"a refused quantum job must not get a directive")
+
+local ordinary = {spank_job_env = nil, partition = "quantum"}
+check(slurm_job_submit(ordinary, nil, 0) == slurm.SUCCESS,
+	"an ordinary job without an account must be accepted")
+check(ordinary.burst_buffer == nil, "ordinary jobs must be unchanged")
+
+local ordinary_env = {spank_job_env = {"OTHER=1"}, partition = "quantum",
+	account = ""}
+check(slurm_job_submit(ordinary_env, nil, 0) == slurm.SUCCESS,
+	"an ordinary job with an empty account must be accepted")

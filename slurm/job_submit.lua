@@ -128,18 +128,19 @@ local function directive(job_desc)
 end
 
 function slurm_job_submit(job_desc, part_list, submit_uid)
-	if job_desc.account == nil or job_desc.account == "" then
-		slurm.user_msg("qfw-slurm: an account is required; use --account/-A")
-		return slurm.ERROR
-	end
 	local output, err = directive(job_desc)
 	if output == nil then
 		slurm.user_msg("qfw-slurm: " .. err)
 		return slurm.ERROR
 	end
-	if output ~= "" then
-		job_desc.burst_buffer = output
+	if output == "" then
+		return slurm.SUCCESS
 	end
+	if job_desc.account == nil or job_desc.account == "" then
+		slurm.user_msg("qfw-slurm: an account is required; use --account/-A")
+		return slurm.ERROR
+	end
+	job_desc.burst_buffer = output
 	return slurm.SUCCESS
 end
 
