@@ -18,9 +18,12 @@ The Slurm host state and logical QPM state are reported separately.
 Write a versioned JSON object instead of the terminal table.
 Each service entry carries
 .BR accelerator :
-the accelerator its QPM reports running on, such as
+the device its QPM reports running on,
+.B cpu
+or
 .BR gpu ,
-or null when the QPM reports none.
+or null when the QPM reports none, as a hardware QPU, a QPM from an older
+QFw, or a configured service that has not registered does.
 .TP
 .BI \-\-site-config " path"
 Use the named QFw site configuration.
