@@ -80,6 +80,24 @@ def test_reads_sanitized_service_and_allocation_contracts() -> None:
     assert not hasattr(allocations[0], "reservation_id")
 
 
+@pytest.mark.parametrize("summary, accelerator", [
+    ({"accelerator": "gpu"}, "gpu"),
+    ({"accelerator": None}, None),
+    ({}, None),
+])
+def test_reads_the_accelerator_a_service_runs_on(
+    monkeypatch, summary, accelerator
+) -> None:
+    reported = Control.get_service_summary(Control())
+    monkeypatch.setattr(
+        Control, "get_service_summary", lambda self: {**reported, **summary}
+    )
+
+    service = QPMInspectionClient(Directory(), DEFw()).services()[0]
+
+    assert service.accelerator == accelerator
+
+
 def test_rejects_malformed_directory_results() -> None:
     class BadDirectory:
         def resolve_services(self, **filters):

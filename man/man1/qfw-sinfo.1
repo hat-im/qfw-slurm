@@ -21,6 +21,11 @@ enforces.
 .TP
 .B \-\-json
 Write a versioned JSON object instead of the terminal table.
+Each service entry carries
+.BR accelerator :
+the accelerator its QPM reports running on, such as
+.BR gpu ,
+or null when the QPM reports none.
 .TP
 .BI \-\-site-config " path"
 Use the named QFw site configuration.

@@ -132,6 +132,7 @@ def _service(
             str(host) for host in summary.get("assigned_hosts") or []
         ),
         dvm_ready=summary.get("dvm_ready"),
+        accelerator=summary.get("accelerator"),
         raw=dict(summary),
     )
 
