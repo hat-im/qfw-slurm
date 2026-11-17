@@ -82,6 +82,7 @@ def test_reads_sanitized_service_and_allocation_contracts() -> None:
 
 @pytest.mark.parametrize("summary, accelerator", [
     ({"accelerator": "gpu"}, "gpu"),
+    ({"accelerator": "cpu"}, "cpu"),
     ({"accelerator": None}, None),
     ({}, None),
 ])
