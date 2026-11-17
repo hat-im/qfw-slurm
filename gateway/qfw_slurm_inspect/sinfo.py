@@ -105,6 +105,7 @@ def _rows(
                 "generation": service.generation,
                 "assigned_hosts": list(service.assigned_hosts),
                 "dvm_ready": service.dvm_ready,
+                "accelerator": service.accelerator,
                 "error": service.error,
             })
     return sorted(rows, key=lambda row: (row["node"], row["service_id"]))
@@ -202,6 +203,7 @@ def _detail(row: dict[str, Any]) -> str:
         ("Active tasks", row["active_tasks"]),
         ("Assigned hosts", ",".join(row["assigned_hosts"]) or "-"),
         ("DVM ready", _optional_bool(row["dvm_ready"])),
+        ("Accelerator", row["accelerator"] or "-"),
         ("Features", ",".join(row["features"]) or "-"),
         ("Error", row["error"] or "-"),
     )

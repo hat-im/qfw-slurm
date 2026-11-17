@@ -114,7 +114,7 @@ def test_json_and_node_filter(monkeypatch, capsys) -> None:
         lambda timeout: type("Client", (), {
             "services": lambda self: [QPMService(
                 "iqm", "run", 4, "IQM", "IDLE", True, 0, 0,
-                ("iqm-head",),
+                ("iqm-head",), accelerator="gpu",
             )]
         })(),
     )
@@ -123,6 +123,7 @@ def test_json_and_node_filter(monkeypatch, capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert payload["schema"] == "qfw-sinfo-v1"
     assert payload["services"][0]["generation"] == 4
+    assert payload["services"][0]["accelerator"] == "gpu"
 
 
 def test_unknown_node_is_rejected(monkeypatch) -> None:

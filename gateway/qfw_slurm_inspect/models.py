@@ -44,6 +44,7 @@ class QPMService:
     assigned_hosts: tuple[str, ...] = ()
     dvm_ready: bool | None = None
     error: str = ""
+    accelerator: str | None = None
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
 
